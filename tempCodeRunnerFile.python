@@ -1,0 +1,171 @@
+import os
+from tkinter import *
+from tkinter import filedialog
+from pygame import mixer
+
+root = Tk()
+root.title("LEMA MUSIC")
+root.geometry("485x700+290+10")
+root.configure(background='#333333')
+root.resizable(False, False)
+mixer.init()
+
+# Initialize a list to store the songs and a variable to keep track of the current index
+songs = []
+current_song_index = 0
+is_playing = False
+
+# Create a function to open a file
+def AddMusic():
+    global songs
+    path = filedialog.askdirectory()
+    if path:
+        os.chdir(path)
+        songs = [song for song in os.listdir(path) if song.endswith(".mp3")]
+        update_playlist()
+
+def update_playlist():
+    Playlist.delete(0, END)  # Clear the current playlist
+    for song in songs:
+        Playlist.insert(END, song)
+
+def toggle_play_pause():
+    global is_playing
+    if is_playing:
+        mixer.music.pause()
+    else:
+        mixer.music.unpause()
+    is_playing = not is_playing
+    update_play_pause_button()
+
+def PlayMusic():
+    global current_song_index, is_playing
+    Music_Name = Playlist.get(ACTIVE)
+    selected_index = songs.index(Music_Name)
+    
+    if selected_index != current_song_index:
+        current_song_index = selected_index
+        mixer.music.load(Music_Name)
+        mixer.music.play()
+        is_playing = True
+    else:
+        if not is_playing:
+            mixer.music.unpause()
+            is_playing = True
+        else:
+            mixer.music.pause()
+            is_playing = False
+    
+    update_play_pause_button()
+def increase_volume():
+    current_volume = mixer.music.get_volume()
+    if current_volume < 1.0:
+        mixer.music.set_volume(current_volume + 0.1)
+
+def decrease_volume():
+    current_volume = mixer.music.get_volume()
+    if current_volume > 0.0:
+        mixer.music.set_volume(current_volume - 0.1)
+
+def NextMusic():
+    global current_song_index
+    current_song_index = (current_song_index + 1) % len(songs)
+    mixer.music.load(songs[current_song_index])
+    mixer.music.play()
+    is_playing = True
+    update_play_pause_button()
+
+def PreviousMusic():
+    global current_song_index
+    current_song_index = (current_song_index - 1) % len(songs)
+    mixer.music.load(songs[current_song_index])
+    mixer.music.play()
+    is_playing = True
+    update_play_pause_button()
+
+def update_play_pause_button():
+    if is_playing:
+        play_pause_button.config(image=pause_image)
+    else:
+        play_pause_button.config(image=play_image)
+
+# icon
+lower_frame = Frame(root, bg="#FFFFFF", width=485, height=180)
+lower_frame.place(x=0, y=400)
+
+image_icon = PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/logo png.png")
+image_icon = image_icon.subsample(3)
+root.iconphoto(False, image_icon)
+
+frameCnt = 30
+frames = [PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/aa1.gif", format='gif -index %i' % (i))
+          for i in range(frameCnt)]
+
+def update(ind):
+    frame = frames[ind]
+    ind += 1
+    if ind == frameCnt:
+        ind = 0
+    label.configure(image=frame)
+    root.after(40, update, ind)
+
+label = Label(root)
+label.place(x=0, y=0)
+root.after(0, update, 0)
+
+# Button
+play_image = PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/play.png")
+# Specify the desired size of the image (e.g., 30x30)
+play_image = play_image.subsample(15)
+
+pause_image = PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/pause.png")
+# Specify the desired size of the image (e.g., 30x30)
+pause_image = pause_image.subsample(15)
+
+play_pause_button = Button(root, image=play_image, bg="#FFFFFF", bd=0, cursor="hand2",
+       command=toggle_play_pause)
+play_pause_button.place(x=225, y=495)
+
+ButtonStop = PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/back.png")
+ButtonStop = ButtonStop.subsample(15)
+Button(root, image=ButtonStop, bg="#FFFFFF", bd=0,
+       command=PreviousMusic).place(x=140, y=495)
+
+Buttonvolume_increase = PhotoImage(file="high-volume.png") 
+Buttonvolume_increase = Buttonvolume_increase.subsample(15)
+Button(root, image=Buttonvolume_increase, bg="#FFFFFF", bd=0,
+       command=increase_volume).place(x=30, y=495)
+
+Buttonvolume_decrease = PhotoImage(file="volume-down.png")  
+Buttonvolume_decrease = Buttonvolume_decrease.subsample(15)
+Button(root, image=Buttonvolume_decrease, bg="#FFFFFF", bd=0,
+       command=decrease_volume).place(x=410, y=495)
+
+ButtonPause = PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/next.png")
+ButtonPause = ButtonPause.subsample(15)
+Button(root, image=ButtonPause, bg="#FFFFFF", bd=0,
+       command=NextMusic).place(x=310, y=495)
+
+# Label
+Menu = PhotoImage(file="D:/Python Projects/create_an_MP3_player-main/menu.png")
+Menu = Menu.subsample(2)
+Label(root, image=Menu).place(x=0, y=580, width=485, height=120)
+
+Frame_Music = Frame(root, bd=2, relief=RIDGE)
+Frame_Music.place(x=0, y=585, width=485, height=100)
+
+Button(root, text="Browse Music", width=59, height=1, font=("calibri",
+                                12, "bold"), fg="Black", bg="#FFFFFF", command=AddMusic).place(x=0, y=550)
+
+Scroll = Scrollbar(Frame_Music)
+Playlist = Listbox(Frame_Music, width=100, font=("Times new roman", 10), bg="pink",
+                   fg="blue", selectbackground="green", cursor="hand2", bd=0, yscrollcommand=Scroll.set)
+Scroll.config(command=Playlist.yview)
+Scroll.pack(side=RIGHT, fill=Y)
+Playlist.pack(side=RIGHT, fill=BOTH)
+
+# Bind the double-click event to the PlayMusic function
+Playlist.bind("<Double-Button-1>", lambda event=None: PlayMusic())
+
+# Execute Tkinter
+root.mainloop()
